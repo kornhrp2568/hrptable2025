@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>ระบบจองโต๊ะจีน (Admin เท่านั้น)</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      text-align: center;
+      margin: 20px;
+    }
+    h1 {
+      color: #b22222;
+    }
+    .stage {
+      width: 200px;
+      height: 60px;
+      background-color: #444;
+      color: #fff;
+      font-size: 20px;
+      font-weight: bold;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0 auto 30px auto;
+      border-radius: 10px;
+      box-shadow: 2px 2px 10px rgba(0,0,0,0.3);
+    }
+    .table-container {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr); /* 5 คอลัมน์ */
+      gap: 10px;
+      max-width: 800px;
+      margin: auto;
+    }
+    .table {
+      padding: 20px;
+      background-color: #eee;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      position: relative;
+    }
+    .table.booked {
+      background-color: #f08080;
+      border-color: #a00;
+      color: white;
+    }
+    .table.vip {
+      background-color: gold;
+      border: 2px solid darkorange;
+      font-weight: bold;
+    }
+    .tooltip {
+      visibility: hidden;
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 4px;
+      padding: 4px 8px;
+      position: absolute;
+      z-index: 1;
+      bottom: 110%;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .table:hover .tooltip {
+      visibility: visible;
+      opacity: 1;
+    }
+    .legend {
+      margin-top: 20px;
+    }
+    .legend span {
+      display: inline-block;
+      margin-right: 10px;
+    }
+    .legend .sample {
+      width: 20px;
+      height: 20px;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 5px;
+      border-radius: 4px;
+    }
+    .available { background-color: #eee; border: 1px solid #ccc; }
+    .booked-sample { background-color: #f08080; border: 1px solid #a00; }
+    .vip-sample { background-color: gold; border: 1px solid darkorange; }
+
+    .show-button {
+      margin-top: 30px;
+      padding: 10px 20px;
+      background-color: #1e90ff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .result-box {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px solid #999;
+      border-radius: 8px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+      text-align: left;
+      background-color: #f9f9f9;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>ระบบจองโต๊ะจีน (50 โต๊ะ | VIP: โต๊ะ 3, 8, 13)</h1>
+
+  <div class="stage">เวที</div>
+
+  <div class="table-container" id="tableContainer"></div>
+
+  <div class="legend">
+    <span><span class="sample available"></span> ว่าง</span>
+    <span><span class="sample booked-sample"></span> จองแล้ว</span>
+    <span><span class="sample vip-sample"></span> VIP</span>
+  </div>
+
+  <button class="show-button" onclick="showAllBookings()">แสดงรายชื่อผู้จองทั้งหมด</button>
+
+  <div class="result-box" id="resultBox" style="display:none;"></div>
+
+  <script>
+    const totalTables = 50;
+    const adminCode = "admin12345";
+    const vipTables = [3, 8, 13];
+    const container = document.getElementById('tableContainer');
+    const resultBox = document.getElementById('resultBox');
+    const tableBookings = {};
+
+    for (let i = 1; i <= totalTables; i++) {
+      const table = document.createElement('div');
+      table.className = 'table';
+      table.textContent = `โต๊ะ ${i}`;
+      table.dataset.tableNumber = i;
+
+      if (vipTables.includes(i)) {
+        table.classList.add('vip');
+      }
+
+      const tooltip = document.createElement('div');
+      tooltip.className = 'tooltip';
+      tooltip.textContent = '';
+      table.appendChild(tooltip);
+
+      table.addEventListener('click', function () {
+        const code = prompt("กรุณาใส่รหัสผู้ดูแล:");
+        if (code !== adminCode) {
+          alert("รหัสไม่ถูกต้อง! เข้าถึงไม่ได้");
+          return;
+        }
+
+        const tableNum = this.dataset.tableNumber;
+        if (this.classList.contains('booked')) {
+          const confirmCancel = confirm(`ต้องการยกเลิกการจองโต๊ะ ${tableNum} หรือไม่?`);
+          if (confirmCancel) {
+            this.classList.remove('booked');
+            tooltip.textContent = '';
+            delete tableBookings[tableNum];
+          }
+        } else {
+          const name = prompt(`กรุณาใส่ชื่อผู้จอง โต๊ะ ${tableNum}:`);
+          if (name && name.trim() !== '') {
+            this.classList.add('booked');
+            tooltip.textContent = `จองโดย: ${name}`;
+            tableBookings[tableNum] = name;
+          }
+        }
+      });
+
+      container.appendChild(table);
+    }
+
+    function showAllBookings() {
+      const entries = Object.entries(tableBookings);
+      if (entries.length === 0) {
+        resultBox.innerHTML = "<strong>ยังไม่มีการจองโต๊ะ</strong>";
+      } else {
+        let html = "<strong>รายชื่อผู้จอง:</strong><ul>";
+        entries.sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+        for (const [tableNum, name] of entries) {
+          html += `<li>โต๊ะ ${tableNum}: ${name}</li>`;
+        }
+        html += "</ul>";
+        resultBox.innerHTML = html;
+      }
+      resultBox.style.display = "block";
+    }
+  </script>
+
+</body>
+</html>
